@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weather & Life</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- External Libraries -->
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-50 font-sans">
+
+<header class="fixed w-full top-0 z-50 bg-white shadow">
+  <nav class="container mx-auto px-6 py-4 flex items-center justify-between">
+    <div class="text-2xl font-['Pacifico'] text-blue-500">Weather & Life</div>
+    
+    <div id="clock" class="text-lg text-gray-700"></div>
+    
+    <div class="flex gap-6">
+      <a href="#weather" class="hover:text-blue-500 transition-colors">Thời tiết</a>
+      <a href="#sos" class="hover:text-blue-500 transition-colors">SOS</a>
+      <a href="#plants" class="hover:text-blue-500 transition-colors">Cây trồng</a>
+      <a href="#alerts" class="hover:text-blue-500 transition-colors">Cảnh báo</a>
+    </div>
+    
+    <div class="relative">
+      <input id="locationSearch" type="text" placeholder="Tìm kiếm địa điểm..." 
+             class="pl-10 pr-4 py-2 rounded-full bg-gray-100 w-64 focus:outline-none focus:ring-2 focus:ring-blue-500">
+      <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+    </div>
+  </nav>
+</header>
+
+<main class="pt-20">
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="text-center">
+      <h1 class="text-5xl font-bold mb-4">Theo dõi thời tiết thông minh</h1>
+      <p class="text-xl mb-6">Dự báo chính xác - Bảo vệ cuộc sống</p>
+      <button class="bg-blue-500 text-white px-6 py-3 rounded-full hover:bg-blue-600 transition-colors" 
+              onclick="locateUser()">Xem thời tiết của bạn</button>
+      <p class="text-lg mt-4">Phát triển bởi đội: Silent Vision</p>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="weather" class="container mx-auto px-6 py-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="weather-card p-6 rounded-lg shadow">
+      <i class="ri-temp-hot-line text-blue-500 text-3xl mb-4"></i>
+      <h3 class="text-xl font-semibold mb-2">Thời tiết địa phương</h3>
+      <p class="text-gray-600 mb-4">Xem chi tiết nhiệt độ, độ ẩm, gió tại vị trí của bạn.</p>
+      <button class="feature-btn text-blue-500 hover:underline" data-feature="weather">Xem chi tiết</button>
+    </div>
+    
+    <div id="sos" class="weather-card p-6 rounded-lg shadow">
+      <i class="ri-alarm-warning-line text-red-500 text-3xl mb-4"></i>
+      <h3 class="text-xl font-semibold mb-2">SOS Khẩn cấp</h3>
+      <p class="text-gray-600 mb-4">Gửi tín hiệu khẩn cấp đến đội cứu hộ.</p>
+      <button class="feature-btn text-red-500 hover:underline" data-feature="sos">Gọi ngay</button>
+    </div>
+    
+    <div id="plants" class="weather-card p-6 rounded-lg shadow">
+      <i class="ri-plant-line text-green-500 text-3xl mb-4"></i>
+      <h3 class="text-xl font-semibold mb-2">Gợi ý cây trồng</h3>
+      <p class="text-gray-600 mb-4">Tư vấn cây trồng phù hợp với thời tiết.</p>
+      <button class="feature-btn text-green-500 hover:underline" data-feature="plants">Xem gợi ý</button>
+    </div>
+    
+    <div id="alerts" class="weather-card p-6 rounded-lg shadow">
+      <i class="ri-thunderstorms-line text-yellow-500 text-3xl mb-4"></i>
+      <h3 class="text-xl font-semibold mb-2">Cảnh báo thiên tai</h3>
+      <p class="text-gray-600 mb-4">Cảnh báo nguy hiểm thiên tai sớm nhất.</p>
+      <button class="feature-btn text-yellow-500 hover:underline" onclick="openDisasterWarningModal()">Xem cảnh báo</button>
+    </div>
+  </section>
+
+  <!-- Charts Section -->
+  <section class="container mx-auto px-6 py-16">
+    <h2 class="text-3xl font-bold text-center mb-6">Dự báo 7 ngày tới</h2>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div class="bg-white rounded-lg shadow p-6 text-center">
+        <i class="ri-temp-hot-line text-red-500 text-4xl mb-4"></i>
+        <h3 class="text-xl font-semibold mb-2">Nhiệt độ</h3>
+        <div id="temperatureChart" class="h-[200px]"></div>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow p-6 text-center">
+        <i class="ri-drop-line text-blue-500 text-4xl mb-4"></i>
+        <h3 class="text-xl font-semibold mb-2">Độ ẩm</h3>
+        <div id="humidityChart" class="h-[200px]"></div>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow p-6 text-center">
+        <i class="ri-cloud-line text-green-500 text-4xl mb-4"></i>
+        <h3 class="text-xl font-semibold mb-2">Lượng mưa</h3>
+        <div id="rainfallChart" class="h-[200px]"></div>
+      </div>
+    </div>
+
+    <!-- Map Section -->
+    <h2 class="text-3xl font-bold text-center my-12">Bản đồ tương tác</h2>
+    <div id="map" class="rounded-lg shadow"></div>
+  </section>
+<!-- Modal Cảnh báo thiên tai -->
+<div id="disasterModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+      <!-- Header -->
+      <div class="bg-gradient-to-r from-red-500 to-orange-500 text-white p-6 rounded-t-2xl">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <i class="ri-alarm-warning-line text-3xl"></i>
+            <h2 class="text-2xl font-bold">Hệ thống cảnh báo thiên tai</h2>
+          </div>
+          <button onclick="closeDisasterWarningModal()" class="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded-full transition-colors">
+            <i class="ri-close-line text-xl"></i>
+          </button>
+        </div>
+        <p class="text-red-100 mt-2">Cập nhật: <span id="updateTime"></span></p>
+      </div>
+
+      <!-- Content -->
+      <div class="p-6">
+        <!-- Cảnh báo hiện tại -->
+        <div class="mb-8">
+          <div class="flex items-center gap-2 mb-4">
+            <i class="ri-alert-line text-red-500 text-xl"></i>
+            <h3 class="text-xl font-bold text-gray-800">Cảnh báo hiện tại (0)</h3>
+          </div>
+          <div id="currentAlerts" class="bg-blue-50 rounded-lg p-6 text-center">
+            <i class="ri-shield-check-line text-green-500 text-4xl mb-3"></i>
+            <p class="text-gray-600 text-lg">Không có cảnh báo nào</p>
+            <p class="text-gray-500 text-sm mt-2">Khu vực của bạn hiện tại an toàn</p>
+          </div>
+        </div>
+
+        <!-- Grid layout cho các phần -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Đánh giá rủi ro tổng thể -->
+          <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <i class="ri-pie-chart-line text-blue-600"></i>
+              Đánh giá rủi ro tổng thể
+            </h3>
+            <div class="text-center mb-4">
+              <div class="relative w-24 h-24 mx-auto mb-3">
+                <div class="w-24 h-24 rounded-full bg-gray-300 flex items-center justify-center">
+                  <span class="text-2xl font-bold text-gray-600">57</span>
+                </div>
+              </div>
+              <p class="text-lg font-semibold text-gray-700">Trung bình</p>
+            </div>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Flood</span>
+                <div class="flex items-center gap-2">
+                  <div class="w-20 h-2 bg-gray-200 rounded-full">
+                    <div class="w-3/5 h-2 bg-red-500 rounded-full"></div>
+                  </div>
+                  <span class="text-xs text-gray-500">70%</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Storm</span>
+                <div class="flex items-center gap-2">
+                  <div class="w-20 h-2 bg-gray-200 rounded-full">
+                    <div class="w-3/5 h-2 bg-orange-500 rounded-full"></div>
+                  </div>
+                  <span class="text-xs text-gray-500">60%</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Thunderstorm</span>
+                <div class="flex items-center gap-2">
+                  <div class="w-20 h-2 bg-gray-200 rounded-full">
+                    <div class="w-4/5 h-2 bg-red-500 rounded-full"></div>
+                  </div>
+                  <span class="text-xs text-gray-500">80%</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Heavy Rain</span>
+                <div class="flex items-center gap-2">
+                  <div class="w-20 h-2 bg-gray-200 rounded-full">
+                    <div class="w-4/5 h-2 bg-red-500 rounded-full"></div>
+                  </div>
+                  <span class="text-xs text-gray-500">85%</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Landslide</span>
+                <div class="flex items-center gap-2">
+                  <div class="w-20 h-2 bg-gray-200 rounded-full">
+                    <div class="w-3/5 h-2 bg-yellow-500 rounded-full"></div>
+                  </div>
+                  <span class="text-xs text-gray-500">65%</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Heat Wave</span>
+                <div class="flex items-center gap-2">
+                  <div class="w-20 h-2 bg-gray-200 rounded-full">
+                    <div class="w-1/3 h-2 bg-green-500 rounded-full"></div>
+                  </div>
+                  <span class="text-xs text-gray-500">30%</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-600">Drought</span>
+                <div class="flex items-center gap-2">
+                  <div class="w-20 h-2 bg-gray-200 rounded-full">
+                    <div class="w-1/5 h-2 bg-blue-500 rounded-full"></div>
+                  </div>
+                  <span class="text-xs text-gray-500">10%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lịch sử thiên tai -->
+          <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <i class="ri-history-line text-green-600"></i>
+              Lịch sử thiên tai (30 ngày)
+            </h3>
+            <div class="text-center py-8">
+              <i class="ri-calendar-check-line text-green-500 text-4xl mb-3"></i>
+              <p class="text-gray-600">Không có sự kiện thiên tai nào trong 30 ngày qua</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hướng dẫn ứng phó khẩn cấp -->
+        <div class="mt-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6">
+          <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <i class="ri-first-aid-kit-line text-purple-600"></i>
+            Hướng dẫn ứng phó khẩn cấp
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white rounded-lg p-4">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="ri-information-line text-blue-500"></i>
+                <h4 class="font-semibold text-gray-700">Lũ lụt</h4>
+              </div>
+              <ul class="text-sm text-gray-600 space-y-1">
+                <li>• Di chuyển đến cao hơn</li>
+                <li>• Tránh xa dòng nước chảy</li>
+                <li>• Chuẩn bị đồ dùng khẩn cấp</li>
+                <li>• Theo dõi thông tin cảnh báo</li>
+              </ul>
+            </div>
+            <div class="bg-white rounded-lg p-4">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="ri-shield-line text-orange-500"></i>
+                <h4 class="font-semibold text-gray-700">Bão</h4>
+              </div>
+              <ul class="text-sm text-gray-600 space-y-1">
+                <li>• Gia cố nhà cửa</li>
+                <li>• Dự trữ thực phẩm và nước</li>
+                <li>• Tránh ra ngoài khi bão đổ bộ</li>
+                <li>• Chuẩn bị đèn pin và pin dự phòng</li>
+              </ul>
+            </div>
+            <div class="bg-white rounded-lg p-4">
+              <div class="flex items-center gap-2 mb-2">
+                <i class="ri-alert-line text-red-500"></i>
+                <h4 class="font-semibold text-gray-700">Sạt lở đất</h4>
+              </div>
+              <ul class="text-sm text-gray-600 space-y-1">
+                <li>• Tránh xa khu vực dốc</li>
+                <li>• Quan sát các dấu hiệu bất thường</li>
+                <li>• Di tản khi có cảnh báo</li>
+                <li>• Không xây dựng gần sườn núi</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nút hành động -->
+        <div class="mt-6 flex flex-wrap gap-3 justify-center">
+          <button onclick="refreshAlerts()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-full transition-colors flex items-center gap-2">
+            <i class="ri-refresh-line"></i>
+            Làm mới cảnh báo
+          </button>
+          <button onclick="subscribeAlerts()" class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-full transition-colors flex items-center gap-2">
+            <i class="ri-notification-line"></i>
+            Đăng ký thông báo
+          </button>
+          <button onclick="shareAlerts()" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-full transition-colors flex items-center gap-2">
+            <i class="ri-share-line"></i>
+            Chia sẻ
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<footer class="bg-gray-900 text-white py-8 text-center">
+  <p>&copy; 2025 Weather & Life. Tất cả quyền được bảo lưu.</p>
+  <p class="mt-2 text-gray-400">Phát triển bởi Silent Vision Team</p>
+</footer>
+
+<!-- Custom JavaScript -->
+<script src="script.js"></script>
+
+</body>
+</html>
+
+
